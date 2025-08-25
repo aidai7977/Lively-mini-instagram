@@ -1,12 +1,31 @@
-# Указывает Docker использовать официальный образ python 3 с dockerhub в качестве базового образа
-FROM python:3.11
-# Устанавливает переменную окружения, которая гарантирует, что вывод из python будет отправлен прямо в терминал без предварительной буферизации
-ENV PYTHONUNBUFFERED 1
-# Устанавливает рабочий каталог контейнера — "app"
+FROM python:3.11-slim
+
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Установка рабочей директории
 WORKDIR /app
-# Копирует все файлы из нашего локального проекта в контейнер
-ADD . /app
-# Запускает команду pip install для всех библиотек, перечисленных в requirements.txt
+
+# Копирование и установка Python зависимостей
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-# Запускает команду makemigrations для создания файлов миграции на основе изменений в моделях
-RUN python manage.py makemigrations
+
+# Копирование проекта
+COPY . .
+
+# Создание директорий для медиафайлов
+RUN mkdir -p media static
+
+# Установка переменных окружения
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Открытие порта
+EXPOSE 8000
+
+# Команда по умолчанию
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
